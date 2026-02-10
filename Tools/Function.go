@@ -11,7 +11,7 @@ import (
 )
 
 func createWs(identity, FnOsUrl, Token string) error {
-	wsClient := wsclient.NewFnOsWsBase(FnOsUrl)
+	wsClient := wsclient.NewFnOsWsBase(FnOsUrl, nil)
 	// 启动连接
 	err := wsClient.Start("main")
 	if err != nil {
@@ -30,6 +30,12 @@ func createWs(identity, FnOsUrl, Token string) error {
 		username := parts[0]
 		password := parts[1]
 		err = wsClient.Login(username, password)
+		if err != nil {
+			return err
+		}
+		wsClient := wsclient.NewFnOsWsBase(FnOsUrl, &wsClient.Token)
+		// 启动连接
+		err = wsClient.Start("main")
 		if err != nil {
 			return err
 		}
@@ -57,7 +63,7 @@ func check(req *mcp.CallToolRequest, ifLogin bool) (bool, error) {
 	token := req.Extra.Header.Get("Token")
 	if ifLogin {
 		if token == "" {
-			return false, fmt.Errorf("为获取到Token")
+			return false, fmt.Errorf("未获取到Token")
 		}
 	}
 	var wsClient *wsclient.FnOsWsBase

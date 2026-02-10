@@ -110,7 +110,7 @@ func (f *FnOsWsBase) GetFileLsData(path *string) FnOsRequestBase[string] {
 	msgDataStr := string(jsonBytes)
 	msg, err := f.hmacSha256Base64(msgDataStr, f.Secret)
 	req := FnOsRequestBase[string]{
-		Msg:   msg + "=" + msgDataStr,
+		Msg:   msg + msgDataStr,
 		ReqID: reqId,
 	}
 	return req

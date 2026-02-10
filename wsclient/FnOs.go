@@ -19,6 +19,7 @@ func (f *FnOsWsBase) Login(userName, passWord string) error {
 	if err != nil {
 		return err
 	}
+	ret.Secret, _ = AESDecrypt(ret.Secret, f.Key, f.Iv)
 	f.LoginRetDto = ret
 	// 设置登录状态和权限
 	f.Mu.Lock()

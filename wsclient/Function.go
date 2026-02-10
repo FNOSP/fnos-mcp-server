@@ -169,3 +169,81 @@ func generateIv() []byte {
 	}
 	return ivBytes
 }
+
+// pkcs7Unpad PKCS7 解填充（CryptoJS 默认填充方式）
+// 参考：https://tools.ietf.org/html/rfc5652#section-6.3
+func pkcs7Unpad(data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return nil, errors.New("pkcs7: 数据长度为0")
+	}
+	// 最后一个字节是填充的长度
+	paddingLen := int(data[len(data)-1])
+	// 校验填充长度是否合法
+	if paddingLen > len(data) || paddingLen == 0 {
+		return nil, errors.New("pkcs7: 无效的填充长度")
+	}
+	// 校验填充的字节是否都是 paddingLen
+	for i := len(data) - paddingLen; i < len(data); i++ {
+		if int(data[i]) != paddingLen {
+			return nil, errors.New("pkcs7: 填充字节不合法")
+		}
+	}
+	// 去除填充
+	return data[:len(data)-paddingLen], nil
+}
+
+// AESDecrypt 模拟 CryptoJS.AES.decrypt 逻辑
+// 参数说明：
+//
+//	ciphertextBase64: 密文字符串（Base64 编码，对应 js 中的 t）
+//	keyStr: 密钥字符串（UTF-8 编码，对应 js 中的 wU）
+//	ivStr: IV 向量字符串（UTF-8 编码，对应 js 中的 PT）
+//
+// 返回值：解密后的明文（Base64 编码字符串）
+func AESDecrypt(ciphertextBase64, keyStr string, iv []byte) (string, error) {
+	// 1. 解码 Base64 密文
+	ciphertext, err := base64.StdEncoding.DecodeString(ciphertextBase64)
+	if err != nil {
+		return "", fmt.Errorf("密文 Base64 解码失败: %w", err)
+	}
+	key := []byte(keyStr)
+
+	// 3. 校验密钥长度（AES 要求 16/24/32 字节）
+	switch len(key) {
+	case 16, 24, 32:
+		// 合法长度
+	default:
+		return "", fmt.Errorf("密钥长度非法（需 16/24/32 字节），当前长度：%d", len(key))
+	}
+
+	// 4. 校验 IV 长度（CBC 模式要求 IV 长度 = 分组长度 = 16 字节）
+	if len(iv) != aes.BlockSize {
+		return "", fmt.Errorf("IV 长度非法（需 16 字节），当前长度：%d", len(iv))
+	}
+
+	// 5. 创建 AES 块
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", fmt.Errorf("创建 AES 块失败: %w", err)
+	}
+
+	// 6. CBC 模式解密
+	mode := cipher.NewCBCDecrypter(block, iv)
+	// CBC 解密要求密文长度是分组长度的整数倍
+	if len(ciphertext)%aes.BlockSize != 0 {
+		return "", errors.New("密文长度不是 AES 分组长度的整数倍")
+	}
+	plaintext := make([]byte, len(ciphertext))
+	mode.CryptBlocks(plaintext, ciphertext)
+
+	// 7. 去除 PKCS7 填充
+	plaintextUnpad, err := pkcs7Unpad(plaintext)
+	if err != nil {
+		return "", fmt.Errorf("PKCS7 解填充失败: %w", err)
+	}
+
+	// 8. 将明文转成 Base64 字符串（对应 js 的 toString(ki.enc.Base64)）
+	plaintextBase64 := base64.StdEncoding.EncodeToString(plaintextUnpad)
+
+	return plaintextBase64, nil
+}

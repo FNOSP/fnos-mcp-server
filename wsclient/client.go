@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"reflect"
 	"sync"
@@ -33,7 +34,14 @@ type FnOsWsBase struct {
 }
 
 // NewFnOsWsBase 创建WebSocket客户端实例
-func NewFnOsWsBase(fnosUrl string) *FnOsWsBase {
+func NewFnOsWsBase(fnosUrl string, token *string) *FnOsWsBase {
+
+	l := LoginRetDto{}
+	if token != nil {
+		l = LoginRetDto{
+			Token: *token,
+		}
+	}
 
 	return &FnOsWsBase{
 		FnosUrl:        fnosUrl,
@@ -42,6 +50,7 @@ func NewFnOsWsBase(fnosUrl string) *FnOsWsBase {
 		Done:           make(chan struct{}),
 		Iv:             generateIv(),
 		Key:            generateKey(),
+		LoginRetDto:    l,
 	}
 }
 
@@ -61,8 +70,12 @@ func (f *FnOsWsBase) connect(wsType string) error {
 	// 构建WebSocket连接地址
 	wsUrl := fmt.Sprintf("%s://%s/websocket?type=%s", protocol, parsedUrl.Host, wsType)
 
+	headers := http.Header{}
 	// 建立连接
-	conn, _, err := websocket.DefaultDialer.Dial(wsUrl, nil)
+	if f.Token != "" {
+		headers.Add("fnos-token", f.Token)
+	}
+	conn, _, err := websocket.DefaultDialer.Dial(wsUrl, headers)
 	if err != nil {
 		return fmt.Errorf("连接WebSocket失败: %w", err)
 	}

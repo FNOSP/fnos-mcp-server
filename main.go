@@ -32,7 +32,7 @@ func makeServerForRequest(r *http.Request) *mcp.Server {
 			server,
 			&mcp.Tool{
 				Name:        "file.ls",
-				Description: "获取文件列表",
+				Description: "获取文件列表,不传递参数默认获取主目录数据",
 			},
 			tools.GetFileLs,
 		)

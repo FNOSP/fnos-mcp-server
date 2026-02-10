@@ -34,12 +34,12 @@ type GetHostNameDataRetDto struct {
 }
 
 type FilesDto struct {
-	Btim int `json:"btim"`
-	Dir  int `json:"dir"`
-	Mtim int `json:"mtim"`
-	Name int `json:"name"`
-	Uid  int `json:"uid"`
-	V    int `json:"v"`
+	Btim int    `json:"btim"`
+	Dir  int    `json:"dir"`
+	Mtim int    `json:"mtim"`
+	Name string `json:"name"`
+	Uid  int    `json:"uid"`
+	V    int    `json:"v"`
 }
 type GetFileLsRetDto struct {
 	FnRetBase
