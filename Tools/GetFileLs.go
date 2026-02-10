@@ -9,7 +9,7 @@ import (
 )
 
 type FileLsInput struct {
-	Name string `json:"name"`
+	Path string `json:"path"`
 	Uid  string `json:"uid"`
 	V    string `json:"v"`
 }
@@ -24,8 +24,8 @@ func GetFileLs(ctx context.Context, req *mcp.CallToolRequest, input *FileLsInput
 	var wsClient *wsclient.FnOsWsBase
 	wsClient, _ = connectionManager.GetConnection(identity)
 	var path *string = nil
-	if input.Name != "" && input.Uid != "" && input.V != "" {
-		_path := fmt.Sprintf("vol%s/%s/%s", input.V, input.Uid, input.Name)
+	if input.Path != "" && input.Uid != "" && input.V != "" {
+		_path := fmt.Sprintf("vol%s/%s/%s", input.V, input.Uid, input.Path)
 		path = &_path
 	}
 	result := wsClient.GetFileLs(path)
@@ -35,5 +35,5 @@ func GetFileLs(ctx context.Context, req *mcp.CallToolRequest, input *FileLsInput
 				Text: "获取成功",
 			},
 		},
-	}, result.Files, nil
+	}, result, nil
 }
