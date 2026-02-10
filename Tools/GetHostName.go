@@ -7,17 +7,19 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-type EmptyInput struct{}
-
 // GetHostName 获取飞牛设备的HostName和版本信息
 func GetHostName(ctx context.Context, req *mcp.CallToolRequest, input EmptyInput) (*mcp.CallToolResult, any, error) {
-	wsClient := wsclient.NewFnOsWsBase("http://fnos.xn--1jqw64a7tu.cn:25130/")
-	err := wsClient.Start("main")
-	if err != nil {
+	pass, err := check(req, false)
+	if !pass {
 		return nil, nil, err
 	}
+	identity := req.Session.ID()
+
+	var wsClient *wsclient.FnOsWsBase
+
+	wsClient, _ = connectionManager.GetConnection(identity)
+
 	hostNameResult := wsClient.GetHostName()
-	wsClient.Stop()
 
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{

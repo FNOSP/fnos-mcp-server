@@ -3,7 +3,6 @@ package wsclient
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 )
 
 type FnOsRequestBase[T any] struct {
@@ -20,6 +19,11 @@ type LoginDto struct {
 	Iv  string `json:"iv"`
 	Rsa string `json:"rsa"`
 	Aes string `json:"aes"`
+}
+
+type FileLsDto struct {
+	DefaultDto
+	Path string `json:"path,omitempty"`
 }
 
 func (f *FnOsWsBase) RsaPubData() FnOsRequestBase[DefaultDto] {
@@ -50,17 +54,16 @@ func (f *FnOsWsBase) GetLoginData(userName, passWord, si, pubKey string) FnOsReq
 	if err != nil {
 		panic(err)
 	}
-	aes, err := f.aesCbcEncryptBase64(plaintext, f.key, f.iv)
+	aes, err := f.aesCbcEncryptBase64(plaintext, f.Key, f.Iv)
 	if err != nil {
 		panic(err)
 	}
 	pubKeyByte := []byte(pubKey) // string -> []byte
-	fmt.Printf("%v\n", pubKeyByte)
-	rsa, err := f.rsaEncrypt(f.key, pubKeyByte)
+	rsa, err := f.rsaEncrypt(f.Key, pubKeyByte)
 
 	msg := LoginDto{
 		Req: "encrypted",
-		Iv:  base64.StdEncoding.EncodeToString(f.iv),
+		Iv:  base64.StdEncoding.EncodeToString(f.Iv),
 		Rsa: rsa,
 		Aes: aes,
 	}
@@ -79,6 +82,35 @@ func (f *FnOsWsBase) GetHostNameData() FnOsRequestBase[DefaultDto] {
 	}
 	req := FnOsRequestBase[DefaultDto]{
 		Msg:   msg,
+		ReqID: reqId,
+	}
+	return req
+}
+func (f *FnOsWsBase) GetFileLsData(path *string) FnOsRequestBase[string] {
+	reqId := f.GetReqId()
+	_d := DefaultDto{
+		Req:   "file.ls",
+		ReqID: reqId,
+	}
+	var msgData FileLsDto
+	if path == nil {
+		msgData = FileLsDto{
+			DefaultDto: _d,
+		}
+	} else {
+		msgData = FileLsDto{
+			DefaultDto: _d,
+			Path:       *path,
+		}
+	}
+	jsonBytes, err := json.Marshal(msgData)
+	if err != nil {
+		panic(err)
+	}
+	msgDataStr := string(jsonBytes)
+	msg, err := f.hmacSha256Base64(msgDataStr, f.Secret)
+	req := FnOsRequestBase[string]{
+		Msg:   msg + "=" + msgDataStr,
 		ReqID: reqId,
 	}
 	return req

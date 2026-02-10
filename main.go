@@ -5,44 +5,54 @@ import (
 	"net/http"
 
 	"fn-mcp-server/tools"
+	"fn-mcp-server/wsclient"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-type CityArgs struct {
-	City string `json:"city"`
-}
-
-var tzMap = map[string]string{
-	"nyc":    "America/New_York",
-	"sf":     "America/Los_Angeles",
-	"boston": "America/New_York",
-}
-
-func main() {
-
-	// 创建 MCP Server
+func makeServerForRequest(r *http.Request) *mcp.Server {
 	server := mcp.NewServer(
 		&mcp.Implementation{
 			Name:    "fnnas-mcp-server",
 			Version: "1.0.0",
-		},
-		nil,
+		}, nil,
 	)
+	if r.Header.Get("Fn-Os-Url") != "" {
+		mcp.AddTool(
+			server,
+			&mcp.Tool{
+				Name:        "appcgi.sysinfo.getHostName",
+				Description: "获取飞牛设备的HostName和版本信息",
+			},
+			tools.GetHostName,
+		)
+	}
+	if r.Header.Get("Token") != "" {
+		mcp.AddTool(
+			server,
+			&mcp.Tool{
+				Name:        "file.ls",
+				Description: "获取文件列表",
+			},
+			tools.GetFileLs,
+		)
+	}
 
-	// 注册 tool
-	mcp.AddTool(server, &mcp.Tool{
-		Name:        "appcgi.sysinfo.getHostName",
-		Description: "获取飞牛设备的HostName和版本信息",
-	}, tools.GetHostName)
+	return server
+}
 
-	// 必须提供 options（v1.2.0 要求）
-	handler := mcp.NewStreamableHTTPHandler(
-		func(r *http.Request) *mcp.Server {
-			return server
-		},
-		&mcp.StreamableHTTPOptions{},
-	)
+// 全局连接管理器
+var connectionManager *wsclient.ConnectionManager
+
+func main() {
+	// 初始化连接管理器
+	connectionManager = wsclient.NewConnectionManager()
+	// 确保在程序结束时停止连接管理器，清理资源
+	defer connectionManager.Stop()
+
+	handler := mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
+		return makeServerForRequest(r)
+	}, nil)
 
 	http.Handle("/mcp", handler)
 

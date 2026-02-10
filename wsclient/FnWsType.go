@@ -15,11 +15,11 @@ type LoginRetDto struct {
 	FnRetBase
 	Admin     bool   `json:"admin"`
 	BackId    string `json:"backId"`
-	LongToken bool   `json:"longToken"`
-	MachineId bool   `json:"machineId"`
-	Secret    bool   `json:"secret"`
-	Token     bool   `json:"token"`
-	Uid       bool   `json:"uid"`
+	LongToken string `json:"longToken"`
+	MachineId string `json:"machineId"`
+	Secret    string `json:"secret"`
+	Token     string `json:"token"`
+	Uid       int    `json:"uid"`
 }
 
 type GetHostNameRetDto struct {
@@ -31,4 +31,17 @@ type GetHostNameDataRetDto struct {
 	HasUsers    bool   `json:"hasUsers"`
 	HostName    string `json:"hostName"`
 	TrimVersion string `json:"trimVersion"`
+}
+
+type FilesDto struct {
+	Btim int `json:"btim"`
+	Dir  int `json:"dir"`
+	Mtim int `json:"mtim"`
+	Name int `json:"name"`
+	Uid  int `json:"uid"`
+	V    int `json:"v"`
+}
+type GetFileLsRetDto struct {
+	FnRetBase
+	Files []FilesDto `json:"files"`
 }

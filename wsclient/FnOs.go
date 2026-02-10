@@ -13,13 +13,18 @@ func (f *FnOsWsBase) Login(userName, passWord string) error {
 	loginData := f.GetLoginData(userName, passWord, rsa_pub.Si, rsa_pub.Pub)
 	data, err := f.Send(loginData.Msg, loginData.ReqID, 10*time.Second)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	ret, err := ConvertTo[LoginRetDto](data)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	f.LoginRetDto = ret
+	// 设置登录状态和权限
+	f.Mu.Lock()
+	f.IsLogin = true
+	f.Admin = ret.Admin
+	f.Mu.Unlock()
 	return nil
 }
 
@@ -43,6 +48,16 @@ func (f *FnOsWsBase) GetHostName() GetHostNameRetDto {
 	reqData := f.GetHostNameData()
 	data, err := f.Send(reqData.Msg, reqData.ReqID, 10*time.Second)
 	ret, err := ConvertTo[GetHostNameRetDto](data)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
+func (f *FnOsWsBase) GetFileLs(path *string) GetFileLsRetDto {
+	reqData := f.GetFileLsData(path)
+	data, err := f.Send(reqData.Msg, reqData.ReqID, 10*time.Second)
+	ret, err := ConvertTo[GetFileLsRetDto](data)
 	if err != nil {
 		panic(err)
 	}

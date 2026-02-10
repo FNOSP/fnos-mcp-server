@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"reflect"
 	"sync"
 	"time"
 
@@ -12,35 +13,42 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// FnosURL 全局FNOS服务器URL，实际项目中应该从环境变量或配置文件中读取
+var FnosURL = "http://fnos.xn--1jqw64a7tu.cn:25130/"
+
 // FnOsWsBase WebSocket客户端核心结构体
 type FnOsWsBase struct {
 	LoginRetDto
-	fnosUrl        string
+	FnosUrl        string
 	conn           *websocket.Conn
-	isRun          bool
-	mu             sync.Mutex             // 保护pendingFutures、isRun和conn
-	connMu         sync.Mutex             // 保护WebSocket连接的并发写入
-	pendingFutures map[string]chan []byte // reqid -> 结果通道
-	done           chan struct{}          // 用于停止goroutine
+	IsRun          bool
+	Mu             sync.Mutex             // 保护pendingFutures、isRun和conn
+	ConnMu         sync.Mutex             // 保护WebSocket连接的并发写入
+	PendingFutures map[string]chan []byte // reqid -> 结果通道
+	Done           chan struct{}          // 用于停止goroutine
 
-	iv  []byte
-	key []byte
+	Iv      []byte
+	Key     string
+	IsLogin bool
 }
 
 // NewFnOsWsBase 创建WebSocket客户端实例
 func NewFnOsWsBase(fnosUrl string) *FnOsWsBase {
+
 	return &FnOsWsBase{
-		fnosUrl:        fnosUrl,
-		isRun:          false,
-		pendingFutures: make(map[string]chan []byte),
-		done:           make(chan struct{}),
+		FnosUrl:        fnosUrl,
+		IsRun:          false,
+		PendingFutures: make(map[string]chan []byte),
+		Done:           make(chan struct{}),
+		Iv:             generateIv(),
+		Key:            generateKey(),
 	}
 }
 
 // connect 建立WebSocket连接并启动处理循环
 func (f *FnOsWsBase) connect(wsType string) error {
 	// 解析URL并确定ws/wss协议
-	parsedUrl, err := url.Parse(f.fnosUrl)
+	parsedUrl, err := url.Parse(f.FnosUrl)
 	if err != nil {
 		return fmt.Errorf("解析URL失败: %w", err)
 	}
@@ -59,10 +67,10 @@ func (f *FnOsWsBase) connect(wsType string) error {
 		return fmt.Errorf("连接WebSocket失败: %w", err)
 	}
 
-	f.mu.Lock()
+	f.Mu.Lock()
 	f.conn = conn
-	f.isRun = true
-	f.mu.Unlock()
+	f.IsRun = true
+	f.Mu.Unlock()
 	log.Info().Msg("WS连接已建立")
 
 	// 启动读消息goroutine
@@ -78,16 +86,16 @@ func (f *FnOsWsBase) connect(wsType string) error {
 // readMessageLoop 循环读取WebSocket消息
 func (f *FnOsWsBase) readMessageLoop() {
 	defer func() {
-		f.mu.Lock()
-		f.isRun = false
-		f.mu.Unlock()
+		f.Mu.Lock()
+		f.IsRun = false
+		f.Mu.Unlock()
 		_ = f.conn.Close()
 		log.Error().Msg("消息读取循环退出")
 	}()
 
 	for {
 		select {
-		case <-f.done:
+		case <-f.Done:
 			return
 		default:
 			// 读取消息
@@ -112,15 +120,15 @@ func (f *FnOsWsBase) readMessageLoop() {
 				continue
 			}
 
-			f.mu.Lock()
-			ch, exists := f.pendingFutures[reqID]
+			f.Mu.Lock()
+			ch, exists := f.PendingFutures[reqID]
 			if exists {
 				// 发送结果到通道并清理
 				ch <- msgBytes
 				close(ch)
-				delete(f.pendingFutures, reqID)
+				delete(f.PendingFutures, reqID)
 			}
-			f.mu.Unlock()
+			f.Mu.Unlock()
 		}
 	}
 }
@@ -135,9 +143,9 @@ func (f *FnOsWsBase) Send(msg interface{}, reqID string, timeout time.Duration) 
 		case <-ctx.Done():
 			return nil, fmt.Errorf("等待连接建立超时")
 		default:
-			f.mu.Lock()
-			runStatus := f.isRun
-			f.mu.Unlock()
+			f.Mu.Lock()
+			runStatus := f.IsRun
+			f.Mu.Unlock()
 			if runStatus {
 				goto connected
 			}
@@ -146,27 +154,33 @@ func (f *FnOsWsBase) Send(msg interface{}, reqID string, timeout time.Duration) 
 	}
 
 connected:
+	var msgBytes []byte
+	var err error
 
-	// 将消息转为JSON
-	msgBytes, err := json.Marshal(msg)
-	if err != nil {
-		return nil, fmt.Errorf("序列化消息失败: %w", err)
+	if reflect.TypeOf(msg).Kind() == reflect.String {
+		msgBytes = []byte(msg.(string))
+	} else {
+		// 将消息转为JSON
+		msgBytes, err = json.Marshal(msg)
+		if err != nil {
+			return nil, fmt.Errorf("序列化消息失败: %w", err)
+		}
 	}
 
 	// 创建结果通道并加入pending
 	ch := make(chan []byte, 1)
-	f.mu.Lock()
-	f.pendingFutures[reqID] = ch
-	f.mu.Unlock()
+	f.Mu.Lock()
+	f.PendingFutures[reqID] = ch
+	f.Mu.Unlock()
 
 	// 发送消息
-	f.connMu.Lock()
+	f.ConnMu.Lock()
 	err = f.conn.WriteMessage(websocket.TextMessage, msgBytes)
-	f.connMu.Unlock()
+	f.ConnMu.Unlock()
 	if err != nil {
-		f.mu.Lock()
-		delete(f.pendingFutures, reqID)
-		f.mu.Unlock()
+		f.Mu.Lock()
+		delete(f.PendingFutures, reqID)
+		f.Mu.Unlock()
 		close(ch)
 		return nil, fmt.Errorf("发送消息失败: %w", err)
 	}
@@ -177,9 +191,9 @@ connected:
 
 	select {
 	case <-ctx.Done():
-		f.mu.Lock()
-		delete(f.pendingFutures, reqID)
-		f.mu.Unlock()
+		f.Mu.Lock()
+		delete(f.PendingFutures, reqID)
+		f.Mu.Unlock()
 		close(ch)
 		log.Error().Msg("获取返回值超时")
 		return nil, ctx.Err()
@@ -199,13 +213,13 @@ func (f *FnOsWsBase) sendHeartbeat() {
 
 	for {
 		select {
-		case <-f.done:
+		case <-f.Done:
 			return
 		case <-ticker.C:
-			f.mu.Lock()
+			f.Mu.Lock()
 			conn := f.conn
-			runStatus := f.isRun
-			f.mu.Unlock()
+			runStatus := f.IsRun
+			f.Mu.Unlock()
 			if conn == nil || !runStatus {
 				return
 			}
@@ -213,9 +227,9 @@ func (f *FnOsWsBase) sendHeartbeat() {
 			heartbeatMsg := map[string]interface{}{
 				"req": "ping",
 			}
-			f.connMu.Lock()
+			f.ConnMu.Lock()
 			err := conn.WriteJSON(heartbeatMsg)
-			f.connMu.Unlock()
+			f.ConnMu.Unlock()
 			if err != nil {
 				log.Warn().Err(err).Msg("发送心跳包失败")
 			} else {
@@ -232,13 +246,13 @@ func (f *FnOsWsBase) sendActive() {
 
 	for {
 		select {
-		case <-f.done:
+		case <-f.Done:
 			return
 		case <-ticker.C:
-			f.mu.Lock()
+			f.Mu.Lock()
 			conn := f.conn
-			runStatus := f.isRun
-			f.mu.Unlock()
+			runStatus := f.IsRun
+			f.Mu.Unlock()
 			if conn == nil || !runStatus {
 				return
 			}
@@ -247,9 +261,9 @@ func (f *FnOsWsBase) sendActive() {
 				"req":   "user.active",
 				"reqid": f.GetReqId(),
 			}
-			f.connMu.Lock()
+			f.ConnMu.Lock()
 			err := conn.WriteJSON(activeMsg)
-			f.connMu.Unlock()
+			f.ConnMu.Unlock()
 			if err != nil {
 				log.Warn().Err(err).Msg("发送user.active失败")
 			} else {
@@ -269,10 +283,10 @@ func (f *FnOsWsBase) Start(wsType string) error {
 
 // Stop 停止WebSocket客户端
 func (f *FnOsWsBase) Stop() {
-	close(f.done)
-	f.mu.Lock()
-	f.isRun = false
-	f.mu.Unlock()
+	close(f.Done)
+	f.Mu.Lock()
+	f.IsRun = false
+	f.Mu.Unlock()
 	if f.conn != nil {
 		_ = f.conn.Close()
 	}
