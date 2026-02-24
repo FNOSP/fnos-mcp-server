@@ -22,8 +22,7 @@ func GetHostName(ctx context.Context, req *mcp.CallToolRequest, input EmptyInput
 	identity := req.Session.ID()
 
 	var wsClient *wsclient.FnOsWsBase
-
-	wsClient, _ = connectionManager.GetConnection(identity)
+	wsClient, _ = ConnectionManager.GetConnection(identity)
 
 	hostNameResult := wsClient.GetHostName()
 

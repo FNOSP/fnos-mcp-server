@@ -28,7 +28,7 @@ func GetFileLs(ctx context.Context, req *mcp.CallToolRequest, input *FileLsInput
 	identity := req.Session.ID()
 
 	var wsClient *wsclient.FnOsWsBase
-	wsClient, _ = connectionManager.GetConnection(identity)
+	wsClient, _ = ConnectionManager.GetConnection(identity)
 	var path *string = nil
 
 	// 检查input是否为nil，以及所有字段是否都提供了值
