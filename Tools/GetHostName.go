@@ -9,7 +9,7 @@ import (
 
 // GetHostName 获取飞牛设备的HostName和版本信息
 func GetHostName(ctx context.Context, req *mcp.CallToolRequest, input EmptyInput) (*mcp.CallToolResult, *wsclient.GetHostNameDataRetDto, error) {
-	pass, err := check(req, false)
+	pass, err := Check(req, false)
 	if !pass {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{

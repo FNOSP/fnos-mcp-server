@@ -15,7 +15,7 @@ type FileLsInput struct {
 }
 
 func GetFileLs(ctx context.Context, req *mcp.CallToolRequest, input *FileLsInput) (*mcp.CallToolResult, *wsclient.GetFileLsRetDto, error) {
-	pass, err := check(req, true)
+	pass, err := Check(req, true)
 	if !pass {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{

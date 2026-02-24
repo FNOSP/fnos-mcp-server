@@ -10,7 +10,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func createWs(identity, FnOsUrl, Token string) error {
+func CreateWs(identity, FnOsUrl, Token string) error {
 	wsClient := wsclient.NewFnOsWsBase(FnOsUrl, nil)
 	// 启动连接
 	err := wsClient.Start("main")
@@ -46,7 +46,7 @@ func createWs(identity, FnOsUrl, Token string) error {
 	return nil
 }
 
-func check(req *mcp.CallToolRequest, ifLogin bool) (bool, error) {
+func Check(req *mcp.CallToolRequest, ifLogin bool) (bool, error) {
 	identity := req.Session.ID()
 	if identity == "" {
 		return false, fmt.Errorf("身份验证失败: 缺少请求ID")
@@ -72,7 +72,7 @@ func check(req *mcp.CallToolRequest, ifLogin bool) (bool, error) {
 	wsClient, exists = connectionManager.GetConnection(identity)
 
 	if !exists {
-		err := createWs(identity, fnosUrl, token)
+		err := CreateWs(identity, fnosUrl, token)
 		if err != nil {
 			return false, err
 		}
@@ -88,7 +88,7 @@ func check(req *mcp.CallToolRequest, ifLogin bool) (bool, error) {
 		// 连接已断开，从管理器中移除并创建新连接
 		connectionManager.RemoveConnection(identity)
 
-		err := createWs(identity, fnosUrl, token)
+		err := CreateWs(identity, fnosUrl, token)
 		if err != nil {
 			return false, err
 		}
