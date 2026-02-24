@@ -8,10 +8,16 @@ import (
 )
 
 // GetHostName 获取飞牛设备的HostName和版本信息
-func GetHostName(ctx context.Context, req *mcp.CallToolRequest, input EmptyInput) (*mcp.CallToolResult, any, error) {
+func GetHostName(ctx context.Context, req *mcp.CallToolRequest, input EmptyInput) (*mcp.CallToolResult, *wsclient.GetHostNameDataRetDto, error) {
 	pass, err := check(req, false)
 	if !pass {
-		return nil, nil, err
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: "获取失败" + err.Error(),
+				},
+			},
+		}, nil, err
 	}
 	identity := req.Session.ID()
 
@@ -21,11 +27,5 @@ func GetHostName(ctx context.Context, req *mcp.CallToolRequest, input EmptyInput
 
 	hostNameResult := wsClient.GetHostName()
 
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{
-				Text: "获取成功",
-			},
-		},
-	}, hostNameResult.Data, nil
+	return nil, &hostNameResult.Data, nil
 }
