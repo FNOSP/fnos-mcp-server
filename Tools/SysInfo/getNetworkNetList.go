@@ -8,8 +8,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// GetHardwareInfo 获取飞牛设备的硬件信息
-func GetHardwareInfo(ctx context.Context, req *mcp.CallToolRequest, input *Tools.EmptyInput) (*mcp.CallToolResult, *wsclient.HardwareInfoData, error) {
+// GetNetworkNetList 获取飞牛设备的硬件信息
+func GetNetworkNetList(ctx context.Context, req *mcp.CallToolRequest, input *Tools.EmptyInput) (*mcp.CallToolResult, *wsclient.HardwareInfoData, error) {
 	pass, err := Tools.Check(req, true)
 	if !pass {
 		return &mcp.CallToolResult{
@@ -24,7 +24,7 @@ func GetHardwareInfo(ctx context.Context, req *mcp.CallToolRequest, input *Tools
 
 	var wsClient *wsclient.FnOsWsBase
 	wsClient, _ = Tools.ConnectionManager.GetConnection(identity)
-	hardwareInfo := wsClient.GetHardwareInfo()
+	hardwareInfo := wsClient.GetNetworkNetList()
 
 	return nil, &hardwareInfo.Data, nil
 }

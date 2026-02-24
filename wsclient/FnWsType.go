@@ -96,15 +96,92 @@ type NetworkInfo struct {
 	Ifs []NetworkInterface `json:"ifs" jsonschema:"系统上所有网络接口的列表,包含:物理网卡/虚拟网卡/回环接口/Docker网桥等,排序:通常按Index或名称排序"`
 }
 
-// HardwareInfoData 硬件信息数据结构体
-type HardwareInfoData struct {
+// NetworkNetListData 硬件信息数据结构体
+type NetworkNetListData struct {
 	Net NetworkInfo `json:"net" jsonschema:"设备的网络子系统完整信息,作为设备信息上报或配置的顶层容器,应用场景:设备信息上报/网络配置备份/远程诊断/自动化配置"`
 }
 
-// HardwareInfoResponse 硬件信息响应结构体
-type HardwareInfoResponse struct {
+// NetworkNetListResponse 硬件信息响应结构体
+type NetworkNetListResponse struct {
 	FnRetBase
 	Data HardwareInfoData `json:"data"`
 	Rev  string           `json:"rev"`
 	Req  string           `json:"req"`
+}
+
+// HardwareInfoResponse 硬件信息查询响应结构体
+type HardwareInfoResponse struct {
+	FnRetBase
+	Data HardwareInfoData `json:"data" jsonschema:"硬件信息数据体,包含CPU/内存/虚拟化/BIOS/磁盘等详细信息"`
+	Rev  string           `json:"rev" jsonschema:"接口版本号,示例:0.1/1.0,用于API兼容性管理"`
+	Req  string           `json:"req" jsonschema:"请求接口名称,示例:appcgi.sysinfo.getHardwareInfo,标识具体的API端点"`
+}
+
+// HardwareInfoData 硬件信息数据体
+type HardwareInfoData struct {
+	CPU     CPUInfo     `json:"cpu" jsonschema:"中央处理器(CPU)信息,包含型号/核心数/线程数等"`
+	Mem     MemoryInfo  `json:"mem" jsonschema:"内存(Memory)信息,包含容量/频率/类型/制造商"`
+	VM      VMInfo      `json:"vm" jsonschema:"虚拟化特性支持状态,包含VT-x/IOMMU/SR-IOV支持情况"`
+	BIOS    BIOSInfo    `json:"bios" jsonschema:"固件/BIOS信息,包含厂商/版本/主板/系统DMI信息"`
+	SysDisk SysDiskInfo `json:"sysdisk" jsonschema:"系统磁盘信息,包含容量/型号/协议/序列号"`
+}
+
+// CPUInfo 中央处理器信息
+type CPUInfo struct {
+	Name   string `json:"name" jsonschema:"CPU型号名称,包含厂商/系列/频率信息,示例:Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz/AMD Ryzen 9 5900X"`
+	Num    int    `json:"num" jsonschema:"物理CPU插槽数量(封装个数),示例:1(单路)/2(双路),普通消费级通常为1"`
+	Core   int    `json:"core" jsonschema:"每个物理CPU的核心数(Core),示例:4(四核)/8(八核)"`
+	Thread int    `json:"thread" jsonschema:"每个核心的逻辑线程数(Thread),考虑超线程技术,示例:4(无超线程)/8(开启超线程)"`
+}
+
+// MemoryInfo 内存信息
+type MemoryInfo struct {
+	Num       int    `json:"num" jsonschema:"物理内存条数量(DIMM插槽占用数),示例:1(单条)/2(双通道)"`
+	Total     int64  `json:"total" jsonschema:"总物理内存容量,单位:字节(bytes),换算:4294967296表示4GB,8589934592表示8GB"`
+	Frequency int    `json:"frequency" jsonschema:"内存运行频率,单位:MHz,0表示未知或未识别,示例:2666/3200/4800"`
+	Type      string `json:"type" jsonschema:"内存技术类型,示例:DDR3/DDR4/DDR5/RAM/DRAM/LPDDR,虚拟环境可能显示为QEMU"`
+	Vendor    string `json:"vendor" jsonschema:"内存制造商/供应商,示例:Samsung/Micron/Hynix/QEMU/Unknown"`
+}
+
+// VMInfo 虚拟化技术支持状态
+type VMInfo struct {
+	Available int `json:"available" jsonschema:"硬件虚拟化技术支持状态,0:不支持/1:支持,指CPU虚拟化扩展(VT-x/AMD-V),是运行KVM/VMware/Hyper-V的前提"`
+	Iommu     int `json:"iommu" jsonschema:"IOMMU(输入输出内存管理单元)支持状态,0:不支持/1:支持,用于PCI设备直通(GPU直通/NVMe直通等SR-IOV场景)"`
+	Sriov     int `json:"sriov" jsonschema:"SR-IOV(单根I/O虚拟化)支持状态,0:不支持/1:支持,允许单个物理PCI设备虚拟成多个轻量级VF(虚拟功能)供虚拟机使用"`
+}
+
+// BIOSInfo 固件和系统DMI信息
+type BIOSInfo struct {
+	Vendor    string        `json:"vendor" jsonschema:"BIOS/UEFI固件厂商,示例:SeaBIOS/AMI/Insyde/Phoenix/ American Megatrends"`
+	Version   string        `json:"version" jsonschema:"BIOS固件版本号,示例:1.16.3-debian-1.16.3-2/F2.20"`
+	Baseboard BaseboardInfo `json:"baseboard" jsonschema:"主板(Baseboard)信息,包含制造商/型号/序列号等DMI信息"`
+	System    SystemInfo    `json:"system" jsonschema:"系统(System)信息,包含整机厂商/产品型号/UUID等DMI信息,用于资产管理和识别"`
+}
+
+// BaseboardInfo 主板信息
+type BaseboardInfo struct {
+	Vendor       string `json:"vendor,omitempty" jsonschema:"主板制造商,示例:QEMU/ASUS/Gigabyte/MSI/Dell/HP"`
+	Name         string `json:"name,omitempty" jsonschema:"主板型号名称,示例:Z390-A PRO/Prime B550-Plus"`
+	Version      string `json:"version,omitempty" jsonschema:"主板版本/修订号"`
+	SerialNumber string `json:"serialNumber,omitempty" jsonschema:"主板序列号,用于资产追踪和保修验证"`
+	AssetTag     string `json:"assetTag,omitempty" jsonschema:"主板资产标签,企业资产管理(Asset Management)标识"`
+}
+
+// SystemInfo 系统DMI信息(整机信息)
+type SystemInfo struct {
+	Vendor       string `json:"vendor" jsonschema:"系统厂商/品牌,示例:QEMU/Dell/HP/Lenovo/ASUSTeK/VMware"`
+	ProductName  string `json:"productName" jsonschema:"产品名称/机型型号,示例:Standard PC (Q35 + ICH9, 2009)/OptiPlex 7080/XPS 15 9500"`
+	Version      string `json:"version" jsonschema:"系统版本/修订,示例:pc-q35-10.0/Not Defined"`
+	Sku          string `json:"sku" jsonschema:"SKU(库存单位)编号,商业产品标识符,用于区分配置版本"`
+	SerialNumber string `json:"serialNumber" jsonschema:"整机序列号/服务标签(Service Tag),唯一标识符,保修和支持的关键依据"`
+	Uuid         string `json:"uuid" jsonschema:"全局唯一标识符(UUID/GUID),格式:8-4-4-4-12十六进制字符,示例:1f6396b0-cb27-4e33-8088-948940cea6fb,用于操作系统授权和资产识别"`
+	Family       string `json:"family" jsonschema:"产品家族系列,示例:ThinkPad X1 Carbon/Precision Workstation/undefined"`
+}
+
+// SysDiskInfo 系统磁盘信息
+type SysDiskInfo struct {
+	Size         int    `json:"size" jsonschema:"磁盘总容量,单位:字节(bytes),0表示容量未知或获取失败,示例:256060514304(256GB SSD)/1000204886016(1TB HDD)"`
+	Model        string `json:"model" jsonschema:"磁盘型号/部件号,示例:Samsung SSD 970 EVO Plus 500GB/WDC WD10EZEX-00BN5A0/Unknown"`
+	Protocol     string `json:"protocol" jsonschema:"磁盘连接协议/总线类型,枚举值:Unknown/SATA(SATA III)/NVMe(PCIe NVMe)/SAS/IDE"`
+	SerialNumber string `json:"serialNumber" jsonschema:"磁盘序列号,唯一标识符,用于资产管理和保修查询,示例:S5H9NS0N123456/Unknown"`
 }

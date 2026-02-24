@@ -27,32 +27,41 @@ func makeServerForRequest(r *http.Request) *mcp.Server {
 			},
 			tools.GetHostName,
 		)
-	}
-	if r.Header.Get("Token") != "" {
 		mcp.AddTool(
 			server,
 			&mcp.Tool{
-				Name:        "file.ls",
-				Description: "获取文件列表,不传递参数默认获取主目录数据",
-			},
-			tools.GetFileLs,
-		)
-		mcp.AddTool(
-			server,
-			&mcp.Tool{
-				Name:        "appcgi.sysinfo.getMachineId",
-				Description: "获取设备ID",
-			},
-			sysinfo.GetMachineId,
-		)
-		mcp.AddTool(
-			server,
-			&mcp.Tool{
-				Name:        "appcgi.network.net.list",
-				Description: "获取硬件信息",
+				Name:        "appcgi.sysinfo.getHardwareInfo",
+				Description: "获取硬件信息,包含CPU/内存/虚拟化/BIOS/磁盘等详细信息",
 			},
 			sysinfo.GetHardwareInfo,
 		)
+		if r.Header.Get("Token") != "" {
+			mcp.AddTool(
+				server,
+				&mcp.Tool{
+					Name:        "file.ls",
+					Description: "获取文件列表,不传递参数默认获取主目录数据",
+				},
+				tools.GetFileLs,
+			)
+			mcp.AddTool(
+				server,
+				&mcp.Tool{
+					Name:        "appcgi.sysinfo.getMachineId",
+					Description: "获取设备ID",
+				},
+				sysinfo.GetMachineId,
+			)
+			mcp.AddTool(
+				server,
+				&mcp.Tool{
+					Name:        "appcgi.network.net.list",
+					Description: "获取网络硬件信息,系统上所有网络接口的列表,包含:物理网卡/虚拟网卡/回环接口/Docker网桥等,排序:通常按Index或名称排序",
+				},
+				sysinfo.GetNetworkNetList,
+			)
+		}
+
 	}
 
 	return server

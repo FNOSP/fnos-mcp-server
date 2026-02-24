@@ -147,3 +147,15 @@ func (f *FnOsWsBase) GetNetworkNetListData() FnOsRequestBase[string] {
 	}
 	return req
 }
+func (f *FnOsWsBase) GetHardwareInfoData() FnOsRequestBase[DefaultDto] {
+	reqId := f.GetReqId()
+	_d := DefaultDto{
+		Req:   "appcgi.sysinfo.getHardwareInfo",
+		ReqID: reqId,
+	}
+	req := FnOsRequestBase[DefaultDto]{
+		Msg:   _d,
+		ReqID: reqId,
+	}
+	return req
+}
