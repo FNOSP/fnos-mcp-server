@@ -74,3 +74,13 @@ func (f *FnOsWsBase) GetMachineId() GetMachineIdRetDto {
 	}
 	return ret
 }
+
+func (f *FnOsWsBase) GetNetworkNetList() HardwareInfoResponse {
+	reqData := f.GetNetworkNetListData()
+	data, err := f.Send(reqData.Msg, reqData.ReqID, 10*time.Second)
+	ret, err := ConvertTo[HardwareInfoResponse](data)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}

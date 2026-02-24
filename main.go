@@ -45,6 +45,14 @@ func makeServerForRequest(r *http.Request) *mcp.Server {
 			},
 			sysinfo.GetMachineId,
 		)
+		mcp.AddTool(
+			server,
+			&mcp.Tool{
+				Name:        "appcgi.network.net.list",
+				Description: "获取硬件信息",
+			},
+			sysinfo.GetHardwareInfo,
+		)
 	}
 
 	return server

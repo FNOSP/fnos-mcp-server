@@ -86,6 +86,7 @@ func (f *FnOsWsBase) GetHostNameData() FnOsRequestBase[DefaultDto] {
 	}
 	return req
 }
+
 func (f *FnOsWsBase) GetFileLsData(path *string) FnOsRequestBase[string] {
 	reqId := f.GetReqId()
 	_d := DefaultDto{
@@ -103,14 +104,12 @@ func (f *FnOsWsBase) GetFileLsData(path *string) FnOsRequestBase[string] {
 			Path:       *path,
 		}
 	}
-	jsonBytes, err := json.Marshal(msgData)
+	msg, err := f.GetSignReq(msgData)
 	if err != nil {
 		panic(err)
 	}
-	msgDataStr := string(jsonBytes)
-	msg, err := f.hmacSha256Base64(msgDataStr, f.Secret)
 	req := FnOsRequestBase[string]{
-		Msg:   msg + msgDataStr,
+		Msg:   msg,
 		ReqID: reqId,
 	}
 	return req
@@ -122,14 +121,28 @@ func (f *FnOsWsBase) GetMachineIdData() FnOsRequestBase[string] {
 		Req:   "appcgi.sysinfo.getMachineId",
 		ReqID: reqId,
 	}
-	jsonBytes, err := json.Marshal(_d)
+	msg, err := f.GetSignReq(_d)
 	if err != nil {
 		panic(err)
 	}
-	msgDataStr := string(jsonBytes)
-	msg, err := f.hmacSha256Base64(msgDataStr, f.Secret)
 	req := FnOsRequestBase[string]{
-		Msg:   msg + msgDataStr,
+		Msg:   msg,
+		ReqID: reqId,
+	}
+	return req
+}
+func (f *FnOsWsBase) GetNetworkNetListData() FnOsRequestBase[string] {
+	reqId := f.GetReqId()
+	_d := DefaultDto{
+		Req:   "appcgi.network.net.list",
+		ReqID: reqId,
+	}
+	msg, err := f.GetSignReq(_d)
+	if err != nil {
+		panic(err)
+	}
+	req := FnOsRequestBase[string]{
+		Msg:   msg,
 		ReqID: reqId,
 	}
 	return req
