@@ -34,12 +34,12 @@ type GetHostNameDataRetDto struct {
 }
 
 type FilesDto struct {
-	Btim int    `json:"btim"`
-	Dir  int    `json:"dir"`
-	Mtim int    `json:"mtim"`
-	Name string `json:"name"`
-	Uid  int    `json:"uid"`
-	V    int    `json:"v"`
+	Btim int    `json:"btim" jsonschema:"文件创建时间"`
+	Dir  int    `json:"dir" jsonschema:"是否为目录，0表示普通文件，1表示目录"`
+	Mtim int    `json:"mtim" jsonschema:"文件最后修改时间"`
+	Name string `json:"name" jsonschema:"文件或目录的名称"`
+	Uid  int    `json:"uid" jsonschema:"文件所属用户的ID"`
+	V    int    `json:"v" jsonschema:"存储空间标识"`
 }
 type GetFileLsRetDto struct {
 	FnRetBase
