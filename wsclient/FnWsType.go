@@ -45,3 +45,12 @@ type GetFileLsRetDto struct {
 	FnRetBase
 	Files []FilesDto `json:"files"`
 }
+
+type MachineIdDto struct {
+	MachineId string `json:"machineId" jsonschema:"设备ID"`
+}
+
+type GetMachineIdRetDto struct {
+	FnRetBase
+	Data MachineIdDto `json:"data"`
+}

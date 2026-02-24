@@ -64,3 +64,13 @@ func (f *FnOsWsBase) GetFileLs(path *string) GetFileLsRetDto {
 	}
 	return ret
 }
+
+func (f *FnOsWsBase) GetMachineId() GetMachineIdRetDto {
+	reqData := f.GetMachineIdData()
+	data, err := f.Send(reqData.Msg, reqData.ReqID, 10*time.Second)
+	ret, err := ConvertTo[GetMachineIdRetDto](data)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}

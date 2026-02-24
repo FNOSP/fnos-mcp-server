@@ -115,3 +115,22 @@ func (f *FnOsWsBase) GetFileLsData(path *string) FnOsRequestBase[string] {
 	}
 	return req
 }
+
+func (f *FnOsWsBase) GetMachineIdData() FnOsRequestBase[string] {
+	reqId := f.GetReqId()
+	_d := DefaultDto{
+		Req:   "appcgi.sysinfo.getMachineId",
+		ReqID: reqId,
+	}
+	jsonBytes, err := json.Marshal(_d)
+	if err != nil {
+		panic(err)
+	}
+	msgDataStr := string(jsonBytes)
+	msg, err := f.hmacSha256Base64(msgDataStr, f.Secret)
+	req := FnOsRequestBase[string]{
+		Msg:   msg + msgDataStr,
+		ReqID: reqId,
+	}
+	return req
+}

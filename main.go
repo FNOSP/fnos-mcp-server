@@ -1,10 +1,11 @@
 package main
 
 import (
+	sysinfo "fn-mcp-server/Tools/SysInfo"
 	"log"
 	"net/http"
 
-	"fn-mcp-server/tools"
+	"fn-mcp-server/Tools"
 	"fn-mcp-server/wsclient"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -35,6 +36,14 @@ func makeServerForRequest(r *http.Request) *mcp.Server {
 				Description: "获取文件列表,不传递参数默认获取主目录数据",
 			},
 			tools.GetFileLs,
+		)
+		mcp.AddTool(
+			server,
+			&mcp.Tool{
+				Name:        "appcgi.sysinfo.getMachineId",
+				Description: "获取设备ID",
+			},
+			sysinfo.GetMachineId,
 		)
 	}
 
