@@ -10,7 +10,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func createWs(identity, FnOsUrl, Token string) error {
+func CreateWs(identity, FnOsUrl, Token string) error {
 	wsClient := wsclient.NewFnOsWsBase(FnOsUrl, nil)
 	// 启动连接
 	err := wsClient.Start("main")
@@ -41,18 +41,19 @@ func createWs(identity, FnOsUrl, Token string) error {
 		}
 	}
 	// 将连接添加到管理器
-	connectionManager.AddConnection(identity, wsClient)
+	ConnectionManager.AddConnection(identity, wsClient)
 
 	return nil
 }
 
-func check(req *mcp.CallToolRequest, ifLogin bool) (bool, error) {
+// Check 检查请求的身份验证和权限，导出供其他包使用
+func Check(req *mcp.CallToolRequest, ifLogin bool) (bool, error) {
 	identity := req.Session.ID()
 	if identity == "" {
 		return false, fmt.Errorf("身份验证失败: 缺少请求ID")
 	}
 
-	if connectionManager == nil {
+	if ConnectionManager == nil {
 		InitConnectionManager()
 	}
 
@@ -69,14 +70,14 @@ func check(req *mcp.CallToolRequest, ifLogin bool) (bool, error) {
 	var wsClient *wsclient.FnOsWsBase
 	var exists bool
 
-	wsClient, exists = connectionManager.GetConnection(identity)
+	wsClient, exists = ConnectionManager.GetConnection(identity)
 
 	if !exists {
-		err := createWs(identity, fnosUrl, token)
+		err := CreateWs(identity, fnosUrl, token)
 		if err != nil {
 			return false, err
 		}
-		wsClient, exists = connectionManager.GetConnection(identity)
+		wsClient, exists = ConnectionManager.GetConnection(identity)
 	}
 
 	// 4. 检查连接状态
@@ -86,13 +87,13 @@ func check(req *mcp.CallToolRequest, ifLogin bool) (bool, error) {
 
 	if !isRun {
 		// 连接已断开，从管理器中移除并创建新连接
-		connectionManager.RemoveConnection(identity)
+		ConnectionManager.RemoveConnection(identity)
 
-		err := createWs(identity, fnosUrl, token)
+		err := CreateWs(identity, fnosUrl, token)
 		if err != nil {
 			return false, err
 		}
-		wsClient, exists = connectionManager.GetConnection(identity)
+		wsClient, exists = ConnectionManager.GetConnection(identity)
 	}
 	return true, nil
 }

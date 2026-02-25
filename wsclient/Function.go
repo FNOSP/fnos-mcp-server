@@ -247,3 +247,13 @@ func AESDecrypt(ciphertextBase64, keyStr string, iv []byte) (string, error) {
 
 	return plaintextBase64, nil
 }
+
+func (f *FnOsWsBase) GetSignReq(req any) (string, error) {
+	jsonBytes, err := json.Marshal(req)
+	if err != nil {
+		panic(err)
+	}
+	msgDataStr := string(jsonBytes)
+	msg, err := f.hmacSha256Base64(msgDataStr, f.Secret)
+	return msg + msgDataStr, err
+}
